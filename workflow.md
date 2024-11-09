@@ -1,4 +1,4 @@
-**Start: YouTube RAG Application**
+**Start: YouTube RAG Application Process**
 
 |
 |--> **scrapetube Initialization**
@@ -29,8 +29,32 @@
 |    |
 |    |--> **Output**: Transcript saved in TXT format for each video
 |
+|--> **Text Extraction and Preprocessing**
+|    |
+|    |--> Extract text data from various file types (PDF, PPT, TXT)
+|    |--> Split text data into chunks for processing
+|
+|--> **Embedding Generation**
+|    |
+|    |--> Create embeddings for each text chunk
+|    |--> Store embeddings in **Qdrant Vector DB**
+|
+|--> **Retrieval Process**
+|    |
+|    |--> Query Qdrant Vector DB for top-k relevant chunks
+|    |    |
+|    |    |--> Retrieve relevant chunks based on embeddings
+|    |
+|    |--> **Output**: Top-k relevant chunks for the query
+|
+|--> **LLM Processing**
+|    |
+|    |--> Feed retrieved chunks to **LLM (Large Language Model)**
+|    |--> Generate a response based on retrieved context
+|
 |--> **Final Output Generation**
 |    |
-|    |--> TXT files containing transcripts are ready for use
+|    |--> Consolidate and format responses from all stages
+|    |--> Provide Final Answer to User via **Streamlit Interface**
 |
 |--> **End: YouTube RAG Application Process Completed**
