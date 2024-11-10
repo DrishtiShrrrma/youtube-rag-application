@@ -4,6 +4,7 @@ import scrapetube
 import pandas as pd
 import streamlit as st
 from bs4 import BeautifulSoup as bs
+from youtube_transcript_api import VideoUnavailable
 
 import llm_service
 import utube_service
@@ -97,6 +98,8 @@ def create_channel_name(channel_name_input):
     channel_name = channel_name.lower()
     return channel_name
 
+
+
 def fetch_transcript(utube_info_df):
 
     title_list = utube_info_df['title'].tolist()
@@ -105,8 +108,9 @@ def fetch_transcript(utube_info_df):
     video_id_list = utube_info_df['video_id'].tolist()
     is_trans_fetched = utube_info_df['is_trans_fetched'].tolist()
 
+    # Add a 'transcript' column if not present
     if 'transcript' not in utube_info_df.columns:
-                utube_info_df['transcript'] = ''
+        utube_info_df['transcript'] = ''
 
     channel_name = create_channel_name(channel_list[0])
 
@@ -116,20 +120,34 @@ def fetch_transcript(utube_info_df):
     for idx, video_id in enumerate(video_id_list):
         progress_bar.progress((idx + 1) / len(video_id_list))
 
-        if is_trans_fetched[idx] is False:
-            transcript = utube_service.get_single_utube_transcript(video_id)
-            create_trans_txt_file(title_list[idx], channel_name, description_list[idx], video_id, transcript)
+        if not is_trans_fetched[idx]:  # Only fetch if not already fetched
+            try:
+                # Try to fetch the transcript
+                transcript = utube_service.get_single_utube_transcript(video_id)
+            except VideoUnavailable:
+                print(f"Transcript not available for video {video_id}. Skipping...")
+                transcript = None  # Set transcript to None if unavailable
+            except Exception as e:
+                print(f"An error occurred for video {video_id}: {e}")
+                transcript = None
+            
+            # Create the transcript file if available
+            if transcript:
+                create_trans_txt_file(title_list[idx], channel_name, description_list[idx], video_id, transcript)
+                print(f"Initiating Knowledgebase Creation For: {video_id} !")
+                llm_service.create_kb(channel_name, video_id)
+                print(f"Knowledgebase Created For: {video_id} !")
+            else:
+                print(f"Skipping Knowledgebase Creation For: {video_id} due to missing transcript.")
 
-            print("Initiating Knowledgebase Creation For:{} !".format(video_id))
-            llm_service.create_kb(channel_name, video_id)
-            print("Knowledgebase Created For:{} !".format(video_id))
-
+            # Update DataFrame with transcript status
             utube_info_df.loc[idx, 'transcript'] = transcript
-            utube_info_df.loc[idx, 'is_trans_fetched'] = True
+            utube_info_df.loc[idx, 'is_trans_fetched'] = True  # Mark as fetched regardless
 
+            # Save updated DataFrame to file
             utube_service.save_channel_data_df(utube_info_df, channel_name)
-    
-    st.write("Knowledgebase Created Successfully !")
+
+    st.write("Knowledgebase Created Successfully!")
 
     # Close progress bar
     progress_bar.empty()
