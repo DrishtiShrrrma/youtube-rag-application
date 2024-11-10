@@ -28,6 +28,7 @@ def scrape_channel_id_and_icon(utube_url_with_channel_name):
 def get_video_details(soup):
     title = channel = description = video_id = external_links = None
     data = re.search(r'var ytInitialPlayerResponse = (\{.*?\});', soup.prettify())
+    
     if data:
         data = json.loads(data.group(1))
         video_details = data.get('videoDetails', {})
@@ -35,7 +36,13 @@ def get_video_details(soup):
         channel = video_details.get('author')
         description = video_details.get('shortDescription')
         video_id = video_details.get('videoId')
-        external_links = re.findall(r'(https?://\S+)', description)
+        
+        # Only run re.findall if description is a valid string
+        if description:
+            external_links = re.findall(r'(https?://\S+)', description)
+        else:
+            external_links = []
+
     return title, channel, description, video_id, external_links
 
 
